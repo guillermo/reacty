@@ -1,10 +1,14 @@
+// Package input converts a io.Reader (normally a tty) into a sequence of events.
+// It have basic support for xtermm and vt100 escape sequences
 package input
 
 //go:generate sequencegenerator -file sequences.go
+// install with ``go install github.com/guillermo/reacty/cmd/sequencegenerator``
 
 import (
 	"bytes"
 	"fmt"
+	"github.com/guillermo/reacty/events"
 	"io"
 	"time"
 )
@@ -23,11 +27,11 @@ const inputWait = time.Millisecond * 2
 type Input struct {
 	source io.Reader
 	runes  <-chan (rune)
-	Events <-chan (Event)
+	Events <-chan (events.Event)
 	data   []rune
 	err    error
 
-	currentEvent     Event
+	currentEvent     events.Event
 	currentEventSize int
 }
 
@@ -35,7 +39,7 @@ type Input struct {
 // Once io.EOF is found, the channel will be closed.
 func Open(source io.Reader) *Input {
 	runesChan := make(chan (rune), 1024)
-	eventsChan := make(chan (Event), 1024)
+	eventsChan := make(chan (events.Event), 1024)
 
 	input := &Input{
 		source: source,
@@ -65,7 +69,7 @@ func (i *Input) runeLoop(c chan (rune)) {
 	}
 }
 
-func (i *Input) eventLoop(c chan (Event)) {
+func (i *Input) eventLoop(c chan (events.Event)) {
 
 	for {
 		if len(i.data) == 0 {
@@ -87,7 +91,7 @@ func (i *Input) eventLoop(c chan (Event)) {
 	close(c)
 }
 
-func (i *Input) genEvent() (e Event, size int) {
+func (i *Input) genEvent() (e events.Event, size int) {
 
 	for more := true; more; {
 		pEvent, pSize, pMore := parsers.parse(i.data)
@@ -105,14 +109,14 @@ func (i *Input) genEvent() (e Event, size int) {
 		}
 	}
 	if e == nil {
-		e = BytesEvent(string(i.data[0]))
+		e = events.BytesEvent(string(i.data[0]))
 		size = 1
 	}
 	return
 }
 
-func buildCharEvent(ch string) Event {
-	return &KeyboardEvent{
+func buildCharEvent(ch string) events.Event {
+	return &events.KeyboardEvent{
 		Key:  ch,
 		Code: ch,
 	}

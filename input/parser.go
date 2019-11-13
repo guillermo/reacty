@@ -1,12 +1,13 @@
 package input
 
 import (
+	"github.com/guillermo/reacty/events"
 	"strings"
 )
 
-type parser func(data []rune) (e Event, eventSize int, more bool)
+type parser func(data []rune) (e events.Event, eventSize int, more bool)
 
-func sequenceParser(data []rune) (e Event, eventSize int, more bool) {
+func sequenceParser(data []rune) (e events.Event, eventSize int, more bool) {
 
 	var lastSeq *seq
 
@@ -27,9 +28,9 @@ func sequenceParser(data []rune) (e Event, eventSize int, more bool) {
 
 }
 
-func utf8Parser(data []rune) (e Event, eventSize int, more bool) {
+func utf8Parser(data []rune) (e events.Event, eventSize int, more bool) {
 	if len(data) == 1 && isUtf8(data[0]) {
-		e = &KeyboardEvent{Key: string(data[0]), Code: string(data[0])}
+		e = &events.KeyboardEvent{Key: string(data[0]), Code: string(data[0])}
 		eventSize = 1
 	}
 	return
@@ -37,7 +38,7 @@ func utf8Parser(data []rune) (e Event, eventSize int, more bool) {
 
 type multiParser []parser
 
-func (p multiParser) parse(data []rune) (e Event, n int, more bool) {
+func (p multiParser) parse(data []rune) (e events.Event, n int, more bool) {
 	for _, parser := range p {
 		pe, pn, pmore := parser(data)
 		if e == nil {

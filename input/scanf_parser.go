@@ -2,15 +2,16 @@ package input
 
 import (
 	"fmt"
+	"github.com/guillermo/reacty/events"
 )
 
 //https://play.golang.org/p/dudzyAar-Wa
-func scanParser(data []rune) (e Event, n int, more bool) {
+func scanParser(data []rune) (e events.Event, n int, more bool) {
 
 	var a, b, c int
 	n, err := fmt.Sscanf(string(data), "\x1b[%d;%d;%dt", &a, &b, &c)
 	if err == nil {
-		return &WindowSizeEvent{}, len(data), false
+		return &events.WindowSizeEvent{}, len(data), false
 	}
 	errMsg := err.Error()
 	if errMsg == "input does not match format" ||

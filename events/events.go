@@ -1,4 +1,5 @@
-package input
+// Package events contains the basic primitives of the input and output events
+package events
 
 import (
 	"fmt"
