@@ -5,6 +5,7 @@ Terminal ui library
 
 # Structure
 
+```
 
   +-----------------+
   |      react      |
@@ -16,3 +17,4 @@ Terminal ui library
   | input  | output | +     +--------+
   +-----------------+
 
+```
