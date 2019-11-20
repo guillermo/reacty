@@ -26,6 +26,11 @@ type Terminal struct {
 	Rows, Cols          int
 }
 
+// Set changes the character display in the given row/col.
+func (t *Terminal) Set(row, col int, ch rune) {
+	t.fb.Set(row, col, ch)
+}
+
 func (t *Terminal) detectResize(c chan (events.Event)) {
 	sigChan := make(chan (os.Signal))
 	signal.Notify(sigChan, syscall.SIGWINCH)
