@@ -1,3 +1,4 @@
+// Package terminal abstract the terminal by providing two main interfaces: Input Events and a framebuffer output
 package terminal
 
 import (
@@ -14,6 +15,7 @@ import (
 	"syscall"
 )
 
+// Terminal holds the state of the current terminal
 type Terminal struct {
 	r  io.Reader
 	fd int
@@ -66,6 +68,7 @@ func (t *Terminal) hideCursor() {
 	t.send("HIDECURSOR")
 }
 
+// Open configures the controlling tty to be used with Terminal
 func Open() (*Terminal, error) {
 	eventsChan := make(chan (events.Event), 1024)
 	t := &Terminal{
@@ -115,6 +118,7 @@ func (t *Terminal) getWinSize(c chan (events.Event)) error {
 	return nil
 }
 
+// Close resets the terminal to the previous state
 func (t *Terminal) Close() error {
 	t.send("RMCUP")
 	t.send("SHOWCURSOR")
