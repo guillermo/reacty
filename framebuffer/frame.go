@@ -21,9 +21,9 @@ func (f *Frame) SetSize(rows, columns int) {
 }
 
 func (f *Frame) Set(row, col int, ch rune) {
-	if row < 1 || row > f.nRows ||
-		col < 1 || col > f.nCols {
-		panic("Set rune out of boundaries")
+	if row <= 0 || row > len(f.Rows) ||
+		col <= 0 || col > len(f.Rows[row-1]) {
+		return
 	}
 	f.Rows[row-1][col-1] = ch
 }
