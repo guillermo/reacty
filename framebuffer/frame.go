@@ -4,14 +4,18 @@ import (
 	"bytes"
 	"github.com/guillermo/reacty/output"
 	"io"
+	"sync"
 )
 
 type Frame struct {
+	sync.Mutex
 	Rows         [][]rune
 	nRows, nCols int
 }
 
 func (f *Frame) SetSize(rows, columns int) {
+	f.Lock()
+	defer f.Unlock()
 	f.nRows = rows
 	f.nCols = columns
 	f.Rows = make([][]rune, rows, rows)
@@ -21,6 +25,8 @@ func (f *Frame) SetSize(rows, columns int) {
 }
 
 func (f *Frame) Set(row, col int, ch rune) {
+	f.Lock()
+	defer f.Unlock()
 	if row <= 0 || row > len(f.Rows) ||
 		col <= 0 || col > len(f.Rows[row-1]) {
 		return
@@ -34,6 +40,8 @@ const (
 )
 
 func (f *Frame) WriteTo(w io.Writer) (n int64, err error) {
+	f.Lock()
+	defer f.Unlock()
 	b := &bytes.Buffer{}
 
 	// Go to 1,1
