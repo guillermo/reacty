@@ -22,8 +22,8 @@ type Terminal struct {
 	input               *input.Input
 	fb                  *framebuffer.Framebuffer
 	oldState, lastState sys.Termios
-	Events              <-chan (events.Event)
-	Rows, Cols          int
+	events              <-chan (events.Event)
+	rows, cols          int
 }
 
 // Open configures the controlling tty to be used with Terminal
@@ -37,7 +37,7 @@ func Open() (*Terminal, error) {
 			Output: os.Stdout,
 		},
 		input:  input.Open(os.Stdin),
-		Events: eventsChan,
+		events: eventsChan,
 	}
 
 	if err := t.saveTerminalState(); err != nil {
@@ -65,6 +65,16 @@ func (t *Terminal) Close() error {
 	t.Send("RMCUP")
 	t.Send("SHOWCURSOR")
 	return t.restore()
+}
+
+// Dimensions returns the size of the terminal
+func (t *Terminal) Dimensions() (Rows, Cols int) {
+	return t.rows, t.cols
+}
+
+// NextEvent return the nextevent in the pipe
+func (t *Terminal) NextEvent() events.Event {
+	return <-t.events
 }
 
 // Set changes the character display in the given row/col.
@@ -119,9 +129,9 @@ func (t *Terminal) getWinSize(c chan (events.Event)) error {
 		Cols: int(ws.Col),
 		Rows: int(ws.Row),
 	}
-	t.Cols = int(ws.Col)
-	t.Rows = int(ws.Row)
-	t.fb.SetSize(t.Rows, t.Cols)
+	t.cols = int(ws.Col)
+	t.rows = int(ws.Row)
+	t.fb.SetSize(t.rows, t.cols)
 
 	return nil
 }

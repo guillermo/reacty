@@ -3,18 +3,23 @@ package main
 import (
 	"fmt"
 	"github.com/guillermo/reacty/events"
+	"github.com/guillermo/reacty/terminal"
 	"runtime/debug"
 )
 
 func main() {
-	doc, err := Open()
+	term, err := terminal.Open()
 	if err != nil {
 		panic(err)
+	}
+	defer term.Close()
+	doc := &Document{
+		Terminal: term,
 	}
 	doc.Body = []string{"hello", "world"}
 	defer func() {
 		if r := recover(); r != nil {
-			doc.Close()
+			term.Close()
 			fmt.Println(err)
 			debug.PrintStack()
 		}
@@ -23,13 +28,12 @@ func main() {
 
 	eventLoop(doc)
 
-	doc.Close()
-
 }
 
 func eventLoop(doc *Document) {
 EventLoop:
-	for event := range doc.Terminal.Events {
+	for {
+		event := doc.Terminal.NextEvent()
 		switch e := event.(type) {
 		case events.KeyboardEvent:
 			if e.Key == "q" {
