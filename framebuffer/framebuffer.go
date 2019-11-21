@@ -6,9 +6,11 @@ import (
 	"time"
 
 	"github.com/guillermo/reacty/output"
+	"sync"
 )
 
 type Framebuffer struct {
+	sync.Mutex
 	Output       io.Writer
 	currentFrame Frame
 	lastFrame    Frame
@@ -31,11 +33,15 @@ func (fb *Framebuffer) StopAutoSync() {
 }
 
 func (fb *Framebuffer) SetSize(rows, cols int) {
+	fb.Lock()
+	defer fb.Unlock()
 	fb.currentFrame.SetSize(rows, cols)
 	fb.lastFrame.SetSize(rows, cols)
 }
 
 func (fb *Framebuffer) Sync() error {
+	fb.Lock()
+	defer fb.Unlock()
 	b := &bytes.Buffer{}
 	for y, _ := range fb.lastFrame.Rows {
 		for x, _ := range fb.lastFrame.Rows[y] {
@@ -54,6 +60,8 @@ func (fb *Framebuffer) Sync() error {
 }
 
 func (fb *Framebuffer) Set(row, col int, ch rune) {
+	fb.Lock()
+	defer fb.Unlock()
 	fb.currentFrame.Set(row, col, ch)
 	return
 }

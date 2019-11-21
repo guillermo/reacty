@@ -41,3 +41,15 @@ func TestFrame(t *testing.T) {
 	}
 	b.Reset()
 }
+
+func TestSetOutOfRange(t *testing.T) {
+
+	f := &Frame{}
+	f.SetSize(1, 1)
+	f.Set(0, 1, '❌')
+	f.Set(2, 1, '❌')
+	f.Set(1, 0, '❌')
+	f.Set(1, 2, '❌')
+	f.Set(1, 1, '✔')
+
+}
