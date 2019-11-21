@@ -5,8 +5,7 @@ import (
 	"github.com/guillermo/reacty/events"
 	"github.com/guillermo/reacty/framebuffer"
 	"github.com/guillermo/reacty/input"
-	"github.com/guillermo/reacty/output"
-	//	"github.com/guillermo/reacty/output/commands"
+	"github.com/guillermo/reacty/commands"
 	"github.com/tredoe/term/sys"
 	"io"
 	"os"
@@ -75,7 +74,7 @@ func (t *Terminal) Set(row, col int, ch rune) {
 
 // Send send a command to the output
 func (t *Terminal) Send(cmd string, args ...interface{}) {
-	t.w.Write(output.Commands[cmd].Sequence(args...))
+	t.w.Write(commands.Commands[cmd].Sequence(args...))
 }
 
 func (t *Terminal) detectResize(c chan (events.Event)) {

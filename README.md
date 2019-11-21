@@ -14,7 +14,7 @@ Terminal ui library
   +-----------------+
   |    terminal     | +     +--------+
   +-----------------+ +---> | events |
-  | input  | output | +     +--------+
+  | input  |commands| +     +--------+
   +-----------------+
 
 ```

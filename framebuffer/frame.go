@@ -2,7 +2,7 @@ package framebuffer
 
 import (
 	"bytes"
-	"github.com/guillermo/reacty/output"
+	"github.com/guillermo/reacty/commands"
 	"io"
 	"sync"
 )
@@ -49,7 +49,7 @@ func (f *Frame) WriteTo(w io.Writer) (n int64, err error) {
 	b := &bytes.Buffer{}
 
 	// Go to 1,1
-	b.Write(output.Commands["GOTO"].Sequence(1, 1))
+	b.Write(commands.Commands["GOTO"].Sequence(1, 1))
 	for i, row := range f.Rows {
 		for _, ch := range row {
 			if isPrintable(ch) {

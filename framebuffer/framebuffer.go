@@ -5,7 +5,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/guillermo/reacty/output"
+	"github.com/guillermo/reacty/commands"
 	"sync"
 )
 
@@ -55,7 +55,7 @@ func (fb *Framebuffer) Sync() error {
 	for y := range fb.lastFrame.Rows {
 		for x := range fb.lastFrame.Rows[y] {
 			if fb.lastFrame.Rows[y][x] != fb.currentFrame.Rows[y][x] {
-				b.Write(output.Commands["GOTO"].Sequence(y+1, x+1))
+				b.Write(commands.Commands["GOTO"].Sequence(y+1, x+1))
 				ch := fb.currentFrame.Rows[y][x]
 				if isPrintable(ch) {
 					b.Write([]byte(string(ch)))
