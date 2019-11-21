@@ -51,12 +51,12 @@ func (ke KeyboardEvent) String() string {
 
 // WindowSizeEvent represents the window terminal size in characters
 type WindowSizeEvent struct {
-	Width  int
-	Height int
+	Cols int
+	Rows int
 }
 
 func (wse *WindowSizeEvent) String() string {
-	return fmt.Sprintf("WindowSizeEvent: %dx%d", wse.Width, wse.Height)
+	return fmt.Sprintf("WindowSizeEvent: %dx%d", wse.Rows, wse.Cols)
 }
 
 // ErrorEvent holds an error produce while processing the input

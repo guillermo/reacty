@@ -71,7 +71,7 @@ var inputTests = []struct {
 	{[]byte("\033[2~"), "Insert"},
 	{[]byte("\033[3~"), "Delete"},
 	{[]byte{0177}, "Backspace"},
-	{[]byte("\x1b[4;420;714t"), "WindowResizeEvent"},
+	{[]byte("\x1b[8;24;80t"), "WindowSizeEvent: 24x80"},
 	/*
 
 		/*
@@ -165,7 +165,7 @@ func TestReiszeEvent(t *testing.T) {
 		t.Fatal("Test():The channel was closed")
 	}
 	eName := event.String()
-	exp := "WindowSizeEvent: 0x0"
+	exp := "WindowSizeEvent: 24x80"
 	if eName != exp {
 		t.Fatal("Expected a ", exp, " Got:", eName)
 	}

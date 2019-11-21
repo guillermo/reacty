@@ -117,8 +117,8 @@ func (t *Terminal) getWinSize(c chan (events.Event)) error {
 	}
 
 	c <- &events.WindowSizeEvent{
-		Width:  int(ws.Col),
-		Height: int(ws.Row),
+		Cols: int(ws.Col),
+		Rows: int(ws.Row),
 	}
 	t.Cols = int(ws.Col)
 	t.Rows = int(ws.Row)

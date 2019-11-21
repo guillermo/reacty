@@ -11,7 +11,7 @@ func scanParser(data []rune) (e events.Event, n int, more bool) {
 	var a, b, c int
 	n, err := fmt.Sscanf(string(data), "\x1b[%d;%d;%dt", &a, &b, &c)
 	if err == nil {
-		return &events.WindowSizeEvent{}, len(data), false
+		return &events.WindowSizeEvent{Rows: b, Cols: c}, len(data), false
 	}
 	errMsg := err.Error()
 	if errMsg == "input does not match format" ||
