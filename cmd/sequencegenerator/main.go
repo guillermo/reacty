@@ -175,12 +175,19 @@ var fnAndDir = []struct {
 }
 
 const (
+	// Ctrl for the Ctrl
 	Ctrl         = ";5"
+	// Alt for the Alt key
 	Alt          = ";3"
+	// Shift for this Shift key
 	Shift        = ";2"
+	// CtrlAlt for the Ctrl + Alt key
 	CtrlAlt      = ";7"
+	// CtrlShift for the Ctrl + Shift key
 	CtrlShift    = ";6"
+	// AltShift for the Alt + Shift key
 	AltShift     = ";4"
+	// CtrlAltShift for the Ctrl + Alt + Shift key
 	CtrlAltShift = ";8"
 )
 

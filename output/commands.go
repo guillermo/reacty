@@ -4,9 +4,10 @@ import (
 	"fmt"
 )
 
-// Type Command implements the Commander Interface
+// Command implements the Commander Interface
 type Command string
 
+// Sequence render the Control Sequence
 func (c Command) Sequence(args ...interface{}) []byte {
 	if len(args) == 0 {
 		return []byte(c)

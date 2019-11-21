@@ -9,6 +9,7 @@ import (
 	"sync"
 )
 
+// Framebuffer represents the terminal state.
 type Framebuffer struct {
 	sync.Mutex
 	Output       io.Writer
@@ -18,6 +19,10 @@ type Framebuffer struct {
 	Fps          int
 }
 
+/*
+AutoSync will call Sync Framebuffer.Fps times per second. If not called, Sync
+have to be called manually to be able to see the changes in terminal
+*/
 func (fb *Framebuffer) AutoSync() {
 	if fb.Fps == 0 {
 		fb.Fps = 60
@@ -28,10 +33,13 @@ func (fb *Framebuffer) AutoSync() {
 		fb.Sync()
 	}
 }
+
+// StopAutoSync will stop the AutoSync
 func (fb *Framebuffer) StopAutoSync() {
 	fb.timer.Stop()
 }
 
+// SetSize sets the framebuffer size
 func (fb *Framebuffer) SetSize(rows, cols int) {
 	fb.Lock()
 	defer fb.Unlock()
@@ -39,12 +47,13 @@ func (fb *Framebuffer) SetSize(rows, cols int) {
 	fb.lastFrame.SetSize(rows, cols)
 }
 
+// Sync will diff the current state and dump the changes into Output
 func (fb *Framebuffer) Sync() error {
 	fb.Lock()
 	defer fb.Unlock()
 	b := &bytes.Buffer{}
-	for y, _ := range fb.lastFrame.Rows {
-		for x, _ := range fb.lastFrame.Rows[y] {
+	for y := range fb.lastFrame.Rows {
+		for x := range fb.lastFrame.Rows[y] {
 			if fb.lastFrame.Rows[y][x] != fb.currentFrame.Rows[y][x] {
 				b.Write(output.Commands["GOTO"].Sequence(y+1, x+1))
 				ch := fb.currentFrame.Rows[y][x]
@@ -59,6 +68,7 @@ func (fb *Framebuffer) Sync() error {
 	return nil
 }
 
+// Set will set the character ch in the row and column given
 func (fb *Framebuffer) Set(row, col int, ch rune) {
 	fb.Lock()
 	defer fb.Unlock()

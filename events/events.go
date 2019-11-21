@@ -66,6 +66,7 @@ func (e ErrorEvent) String() string {
 	return "ErrorEvent: " + string(e)
 }
 
+// MouseEvent represent any action related with the mouse
 type MouseEvent struct {
 	Row, Col int
 	Button   int
@@ -76,6 +77,7 @@ func (m *MouseEvent) String() string {
 	return fmt.Sprintf("MouseEvent: (%d,%d) Button: %d Action: %s ", m.Row, m.Col, m.Button, m.Action)
 }
 
+// PasteEvent represent the intent of pasting content in the terminal
 type PasteEvent string
 
 func (p PasteEvent) String() string {

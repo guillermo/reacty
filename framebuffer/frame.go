@@ -7,23 +7,26 @@ import (
 	"sync"
 )
 
+// Frame represent a matrix of characters
 type Frame struct {
 	sync.Mutex
 	Rows         [][]rune
 	nRows, nCols int
 }
 
+// SetSize sets the size of the Frame
 func (f *Frame) SetSize(rows, columns int) {
 	f.Lock()
 	defer f.Unlock()
 	f.nRows = rows
 	f.nCols = columns
 	f.Rows = make([][]rune, rows, rows)
-	for i, _ := range f.Rows {
+	for i := range f.Rows {
 		f.Rows[i] = make([]rune, columns, columns)
 	}
 }
 
+// Set changes a character in the given position
 func (f *Frame) Set(row, col int, ch rune) {
 	f.Lock()
 	defer f.Unlock()
@@ -39,6 +42,7 @@ const (
 	lastASCIIChar  = '~' //026
 )
 
+// WriteTo implements the WriteTo interface and writes the sequences to render the full frame
 func (f *Frame) WriteTo(w io.Writer) (n int64, err error) {
 	f.Lock()
 	defer f.Unlock()
