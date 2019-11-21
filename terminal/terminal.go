@@ -2,7 +2,6 @@
 package terminal
 
 import (
-	"fmt"
 	"github.com/guillermo/reacty/events"
 	"github.com/guillermo/reacty/framebuffer"
 	"github.com/guillermo/reacty/input"
@@ -26,46 +25,6 @@ type Terminal struct {
 	oldState, lastState sys.Termios
 	Events              <-chan (events.Event)
 	Rows, Cols          int
-}
-
-// Set changes the character display in the given row/col.
-func (t *Terminal) Set(row, col int, ch rune) {
-	t.fb.Set(row, col, ch)
-}
-
-func (t *Terminal) detectResize(c chan (events.Event)) {
-	sigChan := make(chan (os.Signal))
-	signal.Notify(sigChan, syscall.SIGWINCH)
-	for range sigChan {
-		t.getWinSize(c)
-	}
-}
-
-func (t *Terminal) forwardInputEvents(c chan (events.Event)) {
-	for e := range t.input.Events {
-		c <- e
-	}
-	panic("input was closed")
-}
-
-func (t *Terminal) saveTerminalState() error {
-	if err := sys.Getattr(t.fd, &t.lastState); err != nil {
-		return os.NewSyscallError("sys.Getattr", err)
-	}
-	t.oldState = t.lastState
-	return nil
-}
-
-func (t *Terminal) send(cmd string, args ...interface{}) {
-	t.w.Write(output.Commands[cmd].Sequence(args...))
-}
-
-func (t *Terminal) saveScreen() {
-	t.send("SMCUP")
-}
-
-func (t *Terminal) hideCursor() {
-	t.send("HIDECURSOR")
 }
 
 // Open configures the controlling tty to be used with Terminal
@@ -97,7 +56,57 @@ func Open() (*Terminal, error) {
 	t.hideCursor()
 	t.getWinSize(eventsChan)
 
+	go t.fb.AutoSync()
 	return t, nil
+}
+
+// Close resets the terminal to the previous state
+func (t *Terminal) Close() error {
+	t.fb.StopAutoSync()
+	t.Send("RMCUP")
+	t.Send("SHOWCURSOR")
+	return t.restore()
+}
+
+// Set changes the character display in the given row/col.
+func (t *Terminal) Set(row, col int, ch rune) {
+	t.fb.Set(row, col, ch)
+}
+
+// Send send a command to the output
+func (t *Terminal) Send(cmd string, args ...interface{}) {
+	t.w.Write(output.Commands[cmd].Sequence(args...))
+}
+
+func (t *Terminal) detectResize(c chan (events.Event)) {
+	sigChan := make(chan (os.Signal))
+	signal.Notify(sigChan, syscall.SIGWINCH)
+	for range sigChan {
+		t.getWinSize(c)
+	}
+}
+
+func (t *Terminal) forwardInputEvents(c chan (events.Event)) {
+	for e := range t.input.Events {
+		c <- e
+	}
+	panic("input was closed")
+}
+
+func (t *Terminal) saveTerminalState() error {
+	if err := sys.Getattr(t.fd, &t.lastState); err != nil {
+		return os.NewSyscallError("sys.Getattr", err)
+	}
+	t.oldState = t.lastState
+	return nil
+}
+
+func (t *Terminal) saveScreen() {
+	t.Send("SMCUP")
+}
+
+func (t *Terminal) hideCursor() {
+	t.Send("HIDECURSOR")
 }
 
 func (t *Terminal) getWinSize(c chan (events.Event)) error {
@@ -113,16 +122,9 @@ func (t *Terminal) getWinSize(c chan (events.Event)) error {
 	}
 	t.Cols = int(ws.Col)
 	t.Rows = int(ws.Row)
+	t.fb.SetSize(t.Rows, t.Cols)
 
-	fmt.Println(t.Cols, t.Rows)
 	return nil
-}
-
-// Close resets the terminal to the previous state
-func (t *Terminal) Close() error {
-	t.send("RMCUP")
-	t.send("SHOWCURSOR")
-	return t.restore()
 }
 
 func (t *Terminal) rawMode() error {

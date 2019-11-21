@@ -58,4 +58,7 @@ var parsers multiParser = []parser{
 	utf8Parser,
 	sequenceParser,
 	scanParser,
+	scanMouseDownParser,
+	scanMouseReleaseParser,
+	scanPasteParser,
 }
