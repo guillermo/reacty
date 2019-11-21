@@ -65,3 +65,20 @@ type ErrorEvent string
 func (e ErrorEvent) String() string {
 	return "ErrorEvent: " + string(e)
 }
+
+type MouseEvent struct {
+	Row, Col int
+	Button   int
+	Action   string
+}
+
+func (m *MouseEvent) String() string {
+	return fmt.Sprintf("MouseEvent: (%d,%d) Button: %d Action: %s ", m.Row, m.Col, m.Button, m.Action)
+}
+
+type PasteEvent string
+
+func (p PasteEvent) String() string {
+
+	return fmt.Sprintf("PasteEvent: %q", string(p))
+}
