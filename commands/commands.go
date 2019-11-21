@@ -1,4 +1,5 @@
-package output
+// Package commands implement common output commands for the termianl
+package commands
 
 import (
 	"fmt"
