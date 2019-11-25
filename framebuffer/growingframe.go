@@ -2,27 +2,34 @@ package framebuffer
 
 type growingframe frame
 
-func (d *growingframe) Set(row, col int, ch rune) {
-	for len(d.Rows) < row {
-		d.Rows = append(d.Rows, make([]rune, col))
+func (f *growingframe) Set(row, col int, ch rune) {
+	if row <= 0 {
+		panic("Got a no row")
 	}
-	for len(d.Rows[row-1]) < col-1 {
-		d.Rows[row-1] = append(d.Rows[row-1], ' ')
+	if col <= 0 {
+		panic("Got a 0 row")
 	}
-	d.Rows[row-1][col-1] = ch
-	if d.nCols < row {
-		d.nCols = row
+
+	for len(f.Rows) < row {
+		f.Rows = append(f.Rows, make([]rune, col))
 	}
-	if d.nRows < col {
-		d.nRows = col
+	for len(f.Rows[row-1]) < col {
+		f.Rows[row-1] = append(f.Rows[row-1], ' ')
+	}
+	f.Rows[row-1][col-1] = ch
+	if f.nCols < row {
+		f.nCols = row
+	}
+	if f.nRows < col {
+		f.nRows = col
 	}
 }
 
-func (g *growingframe) get(row, col int) rune {
-	if row <= 0 || len(g.Rows) < row {
+func (f *growingframe) get(row, col int) rune {
+	if row <= 0 || len(f.Rows) < row {
 		return ' '
 	}
-	r := g.Rows[row-1]
+	r := f.Rows[row-1]
 
 	if col <= 0 || len(r) < col {
 		return ' '
@@ -39,12 +46,12 @@ type framer interface {
 	Size() (rows, cols int)
 }
 
-func (d *growingframe) CopyTo(f framer, originRow, originCol int) {
-	rows, cols := f.Size()
+func (f *growingframe) CopyTo(dest framer, originRow, originCol int) {
+	rows, cols := dest.Size()
 
 	for row := 0; row < rows; row++ {
 		for col := 0; col < cols; col++ {
-			f.Set(row+1, col+1, d.get(row+originRow, col+originCol))
+			dest.Set(row+1, col+1, f.get(row+originRow, col+originCol))
 		}
 
 	}

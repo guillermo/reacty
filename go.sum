@@ -1,3 +1,5 @@
+github.com/drhodes/golorem v0.0.0-20160418191928-ecccc744c2d9 h1:EQOZw/LCQ0SM4sNez3EhUf9gQalQrLrs4mPtmQa+d58=
+github.com/drhodes/golorem v0.0.0-20160418191928-ecccc744c2d9/go.mod h1:NsKVpF4h4j13Vm6Cx7Kf0V03aJKjfaStvm5rvK4+FyQ=
 github.com/tredoe/term v0.0.0-20161130133337-e551c64f56c0 h1:62GgUset6v9/OOwgp6G9G0T85xd1tSrxuJb6B32wfC0=
 github.com/tredoe/term v0.0.0-20161130133337-e551c64f56c0/go.mod h1:KgcOI1tnP8CSXsT+9RJU/CYuGBjeJAXbhyG8ufn21jQ=
 golang.org/x/sys v0.0.0-20191113165036-4c7a9d0fe056 h1:dHtDnRWQtSx0Hjq9kvKFpBh9uPPKfQN70NZZmvssGwk=

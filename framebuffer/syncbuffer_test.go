@@ -24,4 +24,7 @@ func TestSyncBuffer(t *testing.T) {
 	sb.shouldOutput(t, "\x1b[2;2H😎")
 	sb.shouldOutput(t, "")
 
+	sb.Set(2, 2, ' ')
+	sb.shouldOutput(t, "\x1b[2;2H ")
+
 }

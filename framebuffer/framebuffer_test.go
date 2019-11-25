@@ -7,7 +7,7 @@ import (
 
 func TestOrigin(t *testing.T) {
 	b := &bytes.Buffer{}
-	fb := &Framebuffer{Output: b}
+	fb := &Framebuffer{output: b}
 	row, col := fb.Origin()
 	if row != 1 || col != 1 {
 		t.Errorf("Expecting origin to be 1x1. Got %dx%d", row, col)
@@ -23,7 +23,7 @@ func TestOrigin(t *testing.T) {
 
 func TestSizes(t *testing.T) {
 	b := &bytes.Buffer{}
-	fb := &Framebuffer{Output: b}
+	fb := &Framebuffer{output: b}
 	cols, rows := fb.DocumentSize()
 	if cols != 0 || rows != 0 {
 		t.Error("Expecting a terminal of 0x0")
@@ -33,7 +33,7 @@ func TestSizes(t *testing.T) {
 
 func TestBigFrame(t *testing.T) {
 	b := &bytes.Buffer{}
-	fb := &Framebuffer{Output: b}
+	fb := &Framebuffer{output: b}
 
 	fb.terminal.shouldOutput(t, "")
 	fb.terminal.lastFrame.shouldEqual(t)

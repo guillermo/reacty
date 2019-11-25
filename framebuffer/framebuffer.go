@@ -10,18 +10,20 @@ type Framebuffer struct {
 	terminal             syncBuffer
 	doc                  growingframe
 	originRow, originCol int
-	Output               io.Writer
+	output               io.Writer
 }
 
+// Open returns a framebuffer and start throwing events.
 func Open(o io.Writer) *Framebuffer {
 	fb := &Framebuffer{
-		Output: o,
+		output: o,
 	}
 
 	go fb.autoSync()
 	return fb
 }
 
+// Close stop writing to the Output writer
 func (fb *Framebuffer) Close() {
 	fb.stopAutoSync()
 }
@@ -31,10 +33,16 @@ func (fb *Framebuffer) Origin() (row, col int) {
 	return fb.originRow + 1, fb.originCol + 1
 }
 
+// SetOrigin sets the document origin. A origin of 1,1 will be the start of the document
 func (fb *Framebuffer) SetOrigin(row, col int) {
 	fb.originRow = row - 1
 	fb.originCol = col - 1
 	fb.doc.CopyTo(&fb.terminal, fb.originRow+1, fb.originCol+1)
+}
+
+// SetTerminalSize sets the terminal Size
+func (fb *Framebuffer) SetTerminalSize(rows, cols int) {
+	fb.terminal.SetSize(rows, cols)
 }
 
 func isPrintable(ch rune) bool {
@@ -63,19 +71,18 @@ func (fb *Framebuffer) TerminalSize() (cols, rows int) {
 //have to be called manually to be able to see the changes in terminal
 func (fb *Framebuffer) autoSync() {
 	if fb.terminal.Fps == 0 {
-		fb.terminal.Fps = 60
+		fb.terminal.Fps = 25
 	}
 
-	fb.terminal.timer = time.NewTimer(time.Second / time.Duration(fb.terminal.Fps))
-	for _, ok := <-fb.terminal.timer.C; ok; {
-		// todo
+	fb.terminal.timer = time.NewTicker(time.Second / time.Duration(fb.terminal.Fps))
+	for range fb.terminal.timer.C {
 		fb.sync()
 	}
 }
 
 // sync will write to the output all the changes
 func (fb *Framebuffer) sync() (err error) {
-	_, err = fb.terminal.WriteTo(fb.Output)
+	_, err = fb.terminal.WriteTo(fb.output)
 	return
 }
 
@@ -84,6 +91,7 @@ func (fb *Framebuffer) stopAutoSync() {
 	fb.terminal.timer.Stop()
 }
 
+// Set sets the rune in position *row*/*col* to be *ch*.
 func (fb *Framebuffer) Set(row, col int, ch rune) {
 	fb.doc.Set(row, col, ch)
 	fb.terminal.Set(row-(fb.originRow), col-(fb.originCol), ch)
