@@ -5,41 +5,64 @@ import (
 	"testing"
 )
 
-func TestFramebuffer(t *testing.T) {
-
+func TestOrigin(t *testing.T) {
 	b := &bytes.Buffer{}
-
 	fb := &Framebuffer{Output: b}
-	fb.SetSize(2, 2)
-
-	err := fb.Sync()
-	if err != nil {
-		t.Fatal(err)
+	row, col := fb.Origin()
+	if row != 1 || col != 1 {
+		t.Errorf("Expecting origin to be 1x1. Got %dx%d", row, col)
 	}
 
-	if len(b.Bytes()) != 0 {
-		t.Fatal("Expected 0 Got:", len(b.Bytes()))
+	fb.SetOrigin(1, 1)
+	row, col = fb.Origin()
+	if row != 1 || col != 1 {
+		t.Errorf("Expecting origin to be 1x1. Got %dx%d", row, col)
 	}
 
-	fb.Set(2, 2, '😎')
+}
 
-	err = fb.Sync()
-	if err != nil {
-		t.Fatal(err)
+func TestSizes(t *testing.T) {
+	b := &bytes.Buffer{}
+	fb := &Framebuffer{Output: b}
+	cols, rows := fb.DocumentSize()
+	if cols != 0 || rows != 0 {
+		t.Error("Expecting a terminal of 0x0")
 	}
 
-	if exp := "\x1b[2;2H😎"; b.String() != exp {
-		t.Errorf("Expected %q Got %q", exp, b.String())
-	}
+}
 
-	b.Reset()
+func TestBigFrame(t *testing.T) {
+	b := &bytes.Buffer{}
+	fb := &Framebuffer{Output: b}
 
-	err = fb.Sync()
-	if err != nil {
-		t.Fatal(err)
-	}
+	fb.terminal.shouldOutput(t, "")
+	fb.terminal.lastFrame.shouldEqual(t)
+	fb.terminal.SetSize(2, 2)
 
-	if exp := ""; b.String() != exp {
-		t.Fatalf("Expected %q Got %q", exp, b.String())
-	}
+	fb.Set(1, 1, 'a')
+	fb.Set(2, 2, 'b')
+	fb.sync()
+	fb.terminal.lastFrame.shouldEqual(t, "a ", " b")
+
+	// After changing the origin it should update
+	fb.SetOrigin(2, 1)
+	fb.sync()
+	fb.terminal.lastFrame.shouldEqual(t, " b", "  ")
+
+	fb.SetOrigin(2, 2)
+	fb.sync()
+	fb.terminal.lastFrame.shouldEqual(t, "b ", "  ")
+
+	fb.SetOrigin(1, 1)
+	fb.sync()
+	fb.terminal.lastFrame.shouldEqual(t, "a ", " b")
+
+	// If we add a char, it should show in the correct position
+	fb.SetOrigin(2, 2)
+	fb.Set(3, 3, 'c')
+	fb.sync()
+	fb.doc.shouldSize(t, 3, 3)
+
+	fb.terminal.lastFrame.shouldEqual(t, "b ", " c")
+
 }

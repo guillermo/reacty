@@ -2,10 +2,10 @@
 package terminal
 
 import (
+	"github.com/guillermo/reacty/commands"
 	"github.com/guillermo/reacty/events"
 	"github.com/guillermo/reacty/framebuffer"
 	"github.com/guillermo/reacty/input"
-	"github.com/guillermo/reacty/commands"
 	"github.com/tredoe/term/sys"
 	"io"
 	"os"
@@ -30,12 +30,10 @@ type Terminal struct {
 func Open() (*Terminal, error) {
 	eventsChan := make(chan (events.Event), 1024)
 	t := &Terminal{
-		r:  os.Stdin,
-		w:  os.Stdout,
-		fd: int(os.Stdin.Fd()),
-		fb: &framebuffer.Framebuffer{
-			Output: os.Stdout,
-		},
+		r:      os.Stdin,
+		w:      os.Stdout,
+		fd:     int(os.Stdin.Fd()),
+		fb:     framebuffer.Open(os.Stdout),
 		input:  input.Open(os.Stdin),
 		events: eventsChan,
 	}
@@ -55,13 +53,12 @@ func Open() (*Terminal, error) {
 	t.hideCursor()
 	t.getWinSize(eventsChan)
 
-	go t.fb.AutoSync()
 	return t, nil
 }
 
 // Close resets the terminal to the previous state
 func (t *Terminal) Close() error {
-	t.fb.StopAutoSync()
+	t.fb.Close()
 	t.Send("RMCUP")
 	t.Send("SHOWCURSOR")
 	return t.restore()

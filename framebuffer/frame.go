@@ -4,32 +4,33 @@ import (
 	"bytes"
 	"github.com/guillermo/reacty/commands"
 	"io"
-	"sync"
 )
 
-// Frame represent a matrix of characters
-type Frame struct {
-	sync.Mutex
+// frame represent a matrix of characters
+type frame struct {
 	Rows         [][]rune
 	nRows, nCols int
 }
 
-// SetSize sets the size of the Frame
-func (f *Frame) SetSize(rows, columns int) {
-	f.Lock()
-	defer f.Unlock()
+// SetSize sets the size of the Frame and empty it
+func (f *frame) SetSize(rows, columns int) {
 	f.nRows = rows
 	f.nCols = columns
 	f.Rows = make([][]rune, rows, rows)
 	for i := range f.Rows {
 		f.Rows[i] = make([]rune, columns, columns)
+		for k := 0; k < columns; k++ {
+			f.Rows[i][k] = ' '
+		}
 	}
 }
 
+func (f *frame) Size() (rows, cols int) {
+	return f.nRows, f.nCols
+}
+
 // Set changes a character in the given position
-func (f *Frame) Set(row, col int, ch rune) {
-	f.Lock()
-	defer f.Unlock()
+func (f *frame) Set(row, col int, ch rune) {
 	if row <= 0 || row > len(f.Rows) ||
 		col <= 0 || col > len(f.Rows[row-1]) {
 		return
@@ -43,9 +44,7 @@ const (
 )
 
 // WriteTo implements the WriteTo interface and writes the sequences to render the full frame
-func (f *Frame) WriteTo(w io.Writer) (n int64, err error) {
-	f.Lock()
-	defer f.Unlock()
+func (f *frame) WriteTo(w io.Writer) (n int64, err error) {
 	b := &bytes.Buffer{}
 
 	// Go to 1,1

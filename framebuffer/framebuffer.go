@@ -1,79 +1,40 @@
 package framebuffer
 
 import (
-	"bytes"
 	"io"
 	"time"
-
-	"github.com/guillermo/reacty/commands"
-	"sync"
 )
 
 // Framebuffer represents the terminal state.
 type Framebuffer struct {
-	sync.Mutex
-	Output       io.Writer
-	currentFrame Frame
-	lastFrame    Frame
-	timer        *time.Timer
-	Fps          int
+	terminal             syncBuffer
+	doc                  growingframe
+	originRow, originCol int
+	Output               io.Writer
 }
 
-/*
-AutoSync will call Sync Framebuffer.Fps times per second. If not called, Sync
-have to be called manually to be able to see the changes in terminal
-*/
-func (fb *Framebuffer) AutoSync() {
-	if fb.Fps == 0 {
-		fb.Fps = 60
+func Open(o io.Writer) *Framebuffer {
+	fb := &Framebuffer{
+		Output: o,
 	}
 
-	fb.timer = time.NewTimer(time.Second / time.Duration(fb.Fps))
-	for _, ok := <-fb.timer.C; ok; {
-		fb.Sync()
-	}
+	go fb.autoSync()
+	return fb
 }
 
-// StopAutoSync will stop the AutoSync
-func (fb *Framebuffer) StopAutoSync() {
-	fb.timer.Stop()
+func (fb *Framebuffer) Close() {
+	fb.stopAutoSync()
 }
 
-// SetSize sets the framebuffer size
-func (fb *Framebuffer) SetSize(rows, cols int) {
-	fb.Lock()
-	defer fb.Unlock()
-	fb.currentFrame.SetSize(rows, cols)
-	fb.lastFrame.SetSize(rows, cols)
+// Origin returns the current origin of the document
+func (fb *Framebuffer) Origin() (row, col int) {
+	return fb.originRow + 1, fb.originCol + 1
 }
 
-// Sync will diff the current state and dump the changes into Output
-func (fb *Framebuffer) Sync() error {
-	fb.Lock()
-	defer fb.Unlock()
-	b := &bytes.Buffer{}
-	for y := range fb.lastFrame.Rows {
-		for x := range fb.lastFrame.Rows[y] {
-			if fb.lastFrame.Rows[y][x] != fb.currentFrame.Rows[y][x] {
-				b.Write(commands.Commands["GOTO"].Sequence(y+1, x+1))
-				ch := fb.currentFrame.Rows[y][x]
-				if isPrintable(ch) {
-					b.Write([]byte(string(ch)))
-				}
-				fb.lastFrame.Rows[y][x] = ch
-			}
-		}
-	}
-	fb.Output.Write(b.Bytes())
-	return nil
-}
-
-// Set will set the character ch in the row and column given
-func (fb *Framebuffer) Set(row, col int, ch rune) {
-	fb.Lock()
-	defer fb.Unlock()
-	fb.currentFrame.Set(row, col, ch)
-	return
+func (fb *Framebuffer) SetOrigin(row, col int) {
+	fb.originRow = row - 1
+	fb.originCol = col - 1
+	fb.doc.CopyTo(&fb.terminal, fb.originRow+1, fb.originCol+1)
 }
 
 func isPrintable(ch rune) bool {
@@ -86,4 +47,44 @@ func isPrintable(ch rune) bool {
 		return true
 	}
 	return false
+}
+
+// DocumentSize return the size of the document
+func (fb *Framebuffer) DocumentSize() (cols, rows int) {
+	return fb.doc.nCols, fb.doc.nCols
+}
+
+// TerminalSize returns the size of the terminal
+func (fb *Framebuffer) TerminalSize() (cols, rows int) {
+	return fb.terminal.Size()
+}
+
+//autoSync will call Sync Framebuffer.Fps times per second. If not called, Sync
+//have to be called manually to be able to see the changes in terminal
+func (fb *Framebuffer) autoSync() {
+	if fb.terminal.Fps == 0 {
+		fb.terminal.Fps = 60
+	}
+
+	fb.terminal.timer = time.NewTimer(time.Second / time.Duration(fb.terminal.Fps))
+	for _, ok := <-fb.terminal.timer.C; ok; {
+		// todo
+		fb.sync()
+	}
+}
+
+// sync will write to the output all the changes
+func (fb *Framebuffer) sync() (err error) {
+	_, err = fb.terminal.WriteTo(fb.Output)
+	return
+}
+
+// stopAutoSync will stop the AutoSync
+func (fb *Framebuffer) stopAutoSync() {
+	fb.terminal.timer.Stop()
+}
+
+func (fb *Framebuffer) Set(row, col int, ch rune) {
+	fb.doc.Set(row, col, ch)
+	fb.terminal.Set(row-(fb.originRow), col-(fb.originCol), ch)
 }
