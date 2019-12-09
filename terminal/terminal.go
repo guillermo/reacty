@@ -2,71 +2,101 @@
 package terminal
 
 import (
+	"io"
+	"os"
+
 	"github.com/guillermo/reacty/commands"
 	"github.com/guillermo/reacty/events"
 	"github.com/guillermo/reacty/framebuffer"
 	"github.com/guillermo/reacty/input"
-	"github.com/tredoe/term/sys"
-	"io"
-	"os"
-	"os/signal"
-	"syscall"
 )
 
 // Terminal holds the state of the current terminal
 type Terminal struct {
-	r  io.Reader
-	fd int
+	term
+	r io.Reader
 
-	w                   io.Writer
-	input               *input.Input
-	fb                  *framebuffer.Framebuffer
-	oldState, lastState sys.Termios
-	events              <-chan (events.Event)
-	rows, cols          int
+	w          io.Writer
+	input      *input.Input
+	fb         *framebuffer.Framebuffer
+	events     <-chan (events.Event)
+	cols, rows int
+	log        *os.File
+	FixedSize  [2]int
 }
 
 // Open configures the controlling tty to be used with Terminal
 func Open() (*Terminal, error) {
 	eventsChan := make(chan (events.Event), 1024)
+	log, err := os.Create("cmds.log")
+	if err != nil {
+		panic(err)
+	}
+
+	stdout := io.MultiWriter(log, os.Stdout)
+
 	t := &Terminal{
+		term: term{
+			Fd: int(os.Stdin.Fd()),
+		},
 		r:      os.Stdin,
-		w:      os.Stdout,
-		fd:     int(os.Stdin.Fd()),
-		fb:     framebuffer.Open(os.Stdout),
+		w:      stdout,
+		fb:     framebuffer.Open(stdout),
+		log:    log,
 		input:  input.Open(os.Stdin),
 		events: eventsChan,
 	}
+	if t.FixedSize[0] == 0 {
+		err = t.onResize(func(rows, cols int) {
+			t.fb.SetSize(rows, cols)
+			t.sendWinSize(eventsChan, rows, cols)
+		})
+		if err != nil {
+			return nil, err
+		}
 
-	if err := t.saveTerminalState(); err != nil {
-		return nil, err
-	}
+		if err := t.saveTerminalState(); err != nil {
+			return nil, err
+		}
 
-	if err := t.rawMode(); err != nil {
-		return nil, err
+		if err := t.rawMode(); err != nil {
+			return nil, err
+		}
+	} else {
+		t.fb.SetSize(t.FixedSize[0],t.FixedSize[1])
 	}
 
 	go t.forwardInputEvents(eventsChan)
-	go t.detectResize(eventsChan)
 
 	t.saveScreen()
 	t.hideCursor()
-	t.getWinSize(eventsChan)
 
+	if err != nil {
+		panic(err)
+	}
 	return t, nil
 }
 
 // Close resets the terminal to the previous state
 func (t *Terminal) Close() error {
-	t.fb.Close()
-	t.Send("RMCUP")
-	t.Send("SHOWCURSOR")
-	return t.restore()
+	if t.FixedSize[0] == 0 {
+
+	t.restore()
+	}
+	t.restoreScreen()
+	t.showCursor()
+	t.log.Close()
+	//t.fb.Close()
+	return nil
 }
 
-// Dimensions returns the size of the terminal
-func (t *Terminal) Dimensions() (Rows, Cols int) {
-	return t.rows, t.cols
+// Size returns the terminal size
+func (t *Terminal) Size() (Rows, Cols int) {
+	return t.fb.Size()
+}
+
+func (t *Terminal) Sync() {
+	t.fb.Sync()
 }
 
 // NextEvent return the nextevent in the pipe
@@ -75,21 +105,13 @@ func (t *Terminal) NextEvent() events.Event {
 }
 
 // Set changes the character display in the given row/col.
-func (t *Terminal) Set(row, col int, ch rune) {
-	t.fb.Set(row, col, ch)
+func (t *Terminal) Set(row, col int, ch rune, attrs ...interface{}) {
+	t.fb.Set(row, col, ch, attrs...)
 }
 
 // Send send a command to the output
 func (t *Terminal) Send(cmd string, args ...interface{}) {
-	t.w.Write(commands.Commands[cmd].Sequence(args...))
-}
-
-func (t *Terminal) detectResize(c chan (events.Event)) {
-	sigChan := make(chan (os.Signal))
-	signal.Notify(sigChan, syscall.SIGWINCH)
-	for range sigChan {
-		t.getWinSize(c)
-	}
+	t.w.Write(commands.Sequence(cmd, args...))
 }
 
 func (t *Terminal) forwardInputEvents(c chan (events.Event)) {
@@ -99,73 +121,24 @@ func (t *Terminal) forwardInputEvents(c chan (events.Event)) {
 	panic("input was closed")
 }
 
-func (t *Terminal) saveTerminalState() error {
-	if err := sys.Getattr(t.fd, &t.lastState); err != nil {
-		return os.NewSyscallError("sys.Getattr", err)
-	}
-	t.oldState = t.lastState
-	return nil
-}
-
 func (t *Terminal) saveScreen() {
 	t.Send("SMCUP")
+}
+
+func (t *Terminal) restoreScreen() {
+	t.Send("RMCUP")
 }
 
 func (t *Terminal) hideCursor() {
 	t.Send("HIDECURSOR")
 }
+func (t *Terminal) showCursor() {
+	t.Send("SHOWCURSOR")
+}
 
-func (t *Terminal) getWinSize(c chan (events.Event)) error {
-
-	ws := sys.Winsize{}
-	if err := sys.GetWinsize(t.fd, &ws); err != nil {
-		panic(err)
-	}
-
+func (t *Terminal) sendWinSize(c chan (events.Event), rows, cols int) {
 	c <- &events.WindowSizeEvent{
-		Cols: int(ws.Col),
-		Rows: int(ws.Row),
+		Cols: cols,
+		Rows: rows,
 	}
-	t.cols = int(ws.Col)
-	t.rows = int(ws.Row)
-	t.fb.SetSize(t.rows, t.cols)
-
-	return nil
-}
-
-func (t *Terminal) rawMode() error {
-	// Input modes - no break, no CR to NL, no NL to CR, no carriage return,
-	// no strip char, no start/stop output control, no parity check.
-	t.lastState.Iflag &^= (sys.BRKINT | sys.IGNBRK | sys.ICRNL | sys.INLCR |
-		sys.IGNCR | sys.ISTRIP | sys.IXON | sys.PARMRK)
-
-	// Output modes - disable post processing.
-	t.lastState.Oflag &^= sys.OPOST
-
-	// Local modes - echoing off, canonical off, no extended functions,
-	// no signal chars (^Z,^C).
-	t.lastState.Lflag &^= (sys.ECHO | sys.ECHONL | sys.ICANON | sys.IEXTEN | sys.ISIG)
-
-	// Control modes - set 8 bit chars.
-	t.lastState.Cflag &^= (sys.CSIZE | sys.PARENB)
-	t.lastState.Cflag |= sys.CS8
-
-	// Control chars - set return condition: min number of bytes and timer.
-	// We want read to return every single byte, without timeout.
-	t.lastState.Cc[sys.VMIN] = 1 // Read returns when one char is available.
-	t.lastState.Cc[sys.VTIME] = 0
-
-	// Put the terminal in raw mode after flushing
-	if err := sys.Setattr(t.fd, sys.TCSAFLUSH, &t.lastState); err != nil {
-		return os.NewSyscallError("sys.Setattr", err)
-	}
-	return nil
-}
-
-func (t *Terminal) restore() error {
-	if err := sys.Setattr(t.fd, sys.TCSANOW, &t.oldState); err != nil {
-		return os.NewSyscallError("sys.Setattr", err)
-	}
-	t.lastState = t.oldState
-	return nil
 }
