@@ -18,6 +18,7 @@ func (d *Document) Parse(r io.Reader) error {
 		return err
 	}
 	d.node = doc
+	d.Chars = CharArea{}
 	d.render()
 	return nil
 }
@@ -64,13 +65,39 @@ func (d *Document) renderTextNode(cursor *cursor, node *html.Node) {
 }
 
 func (d *Document) renderElementNode(cursor *cursor, node *html.Node) {
+	if node.DataAtom == atom.Head {
+		return
+	}
 	for c := node.FirstChild; c != nil; c = c.NextSibling {
 		d.renderNode(cursor, c)
 	}
 
-	if node.DataAtom == atom.P {
+	style := getStyle(node)
+
+	if getStyleDisplay(style, node.DataAtom) == DisplayBlock {
 		cursor.row++
 		cursor.col = 0
 	}
+
+}
+
+func getStyle(node *html.Node) Style {
+	style := Style{}
+	for _, attr := range node.Attr {
+		//todo? lower case
+		if attr.Key == "style" {
+			style, _ = ParseStyle(attr.Val)
+			//todo: log the errors
+		}
+	}
+	return style
+}
+
+func getStyleDisplay(style Style, el atom.Atom) StyleDisplay {
+	v, ok := style["display"]
+	if !ok {
+		return defaultDisplayStyleFor(el)
+	}
+	return v.(StyleDisplay)
 
 }
