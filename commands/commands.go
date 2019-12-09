@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// Command implements the Commander Interface
+// Command represent a CSI sequence
 type Command string
 
 // Sequence render the Control Sequence
@@ -17,10 +17,16 @@ func (c Command) Sequence(args ...interface{}) []byte {
 	return []byte(fmt.Sprintf(string(c), args...))
 }
 
+// Sequence generate the given command with the provided arguments
+func Sequence(name string, args ...interface{}) []byte {
+	return Commands[name].Sequence(args...)
+}
+
 //https://invisible-island.net/xterm/ctlseqs/ctlseqs.html
 
 // Commands is the list of fixed commands
 var Commands = map[string]Command{
+	// SMCUP will enable the alternative buffer
 	"SMCUP":         "\x1b[?1049h\x1b[22;0;0t", // Activate alternate buffer
 	"RMCUP":         "\x1b[?1049l\x1b[23;0;0t", // Undo ^^
 	"HIDECURSOR":    "\x1b[?25l",
@@ -40,7 +46,10 @@ var Commands = map[string]Command{
 	"GETWINDOWSIZE": "\x1b[18t",
 	"CURSORUPN":     "\x1b[%dA",
 	"GOTO":          "\x1b[%d;%dH", // RowxColumn starting on 1
-	"ENABLEPASTE":   "\033[?2004h", // Enable paste
-	"DISABLEPASTE":  "\033[?2004l", // Disable paste
+	"ENABLEPASTE":   "\x1b[?2004h", // Enable paste
+	"DISABLEPASTE":  "\x1b[?2004l", // Disable paste
+	"CHARSTYLE": "\x1b[%sm",
+	"BGCOLOR": "\x1b[48;2;%d;%d;%dm",
+	"FGCOLOR": "\x1b[38;2;%d;%d;%dm",
 
 }
