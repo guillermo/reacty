@@ -1,41 +1,76 @@
-package main
+package document
 
 import (
-	"github.com/guillermo/reacty/events"
+	"golang.org/x/net/html"
+	"golang.org/x/net/html/atom"
+	"io"
 )
 
-// Terminal represents anything that can be used as a terminal
-type Terminal interface {
-	Dimensions() (rows, cols int)
-	Set(Row, Col int, Ch rune)
-	NextEvent() events.Event
-}
-
-// Document holds the document
 type Document struct {
-	Terminal Terminal
-	Body     []string
+	Chars CharArea
+	node  *html.Node
+	Width int
 }
 
-// Render renders the current document
-func (d *Document) Render() {
-	var line, col int
+func (d *Document) Parse(r io.Reader) error {
+	doc, err := html.Parse(r)
+	if err != nil {
+		return err
+	}
+	d.node = doc
+	d.render()
+	return nil
+}
 
-	rows, cols := d.Terminal.Dimensions()
+type cursor struct {
+	row, col int
+}
 
-	for _, content := range d.Body {
-		for _, ch := range content {
-			d.Terminal.Set(line+1, col+1, ch)
-			col++
-			if col >= cols {
-				col = 0
-				line++
-				if line >= rows {
-					return
-				}
-			}
+func (d *Document) render() {
+	cursor := &cursor{}
+	d.renderNode(cursor, d.node)
+
+}
+
+func (d *Document) renderNode(cursor *cursor, node *html.Node) {
+	if node.Type == html.TextNode {
+		d.renderTextNode(cursor, node)
+	}
+	if node.Type == html.ElementNode {
+		d.renderElementNode(cursor, node)
+	}
+	if node.Type == html.DocumentNode {
+		for c := node.FirstChild; c != nil; c = c.NextSibling {
+			d.renderNode(cursor, c)
 		}
 
+	}
+}
+
+func (d *Document) renderTextNode(cursor *cursor, node *html.Node) {
+	runes := []rune(node.Data)
+	for _, ch := range runes {
+		d.Chars.Set(cursor.row+1, cursor.col+1, Char{Content: []rune{ch}})
+		cursor.col++
+		if cursor.col >= d.Width {
+			cursor.col = 0
+			cursor.row++
+		}
+	}
+	for c := node.FirstChild; c != nil; c = c.NextSibling {
+		d.renderNode(cursor, c)
+	}
+
+}
+
+func (d *Document) renderElementNode(cursor *cursor, node *html.Node) {
+	for c := node.FirstChild; c != nil; c = c.NextSibling {
+		d.renderNode(cursor, c)
+	}
+
+	if node.DataAtom == atom.P {
+		cursor.row++
+		cursor.col = 0
 	}
 
 }
