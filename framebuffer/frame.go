@@ -1,26 +1,20 @@
 package framebuffer
 
-import (
-	"bytes"
-	"github.com/guillermo/reacty/commands"
-	"io"
-)
-
 // frame represent a matrix of characters
 type frame struct {
-	Rows         [][]rune
+	Rows         [][]Char
 	nRows, nCols int
 }
 
 // SetSize sets the size of the Frame and empty it
-func (f *frame) SetSize(rows, columns int) {
+func (f *frame) SetSize(rows, cols int) {
 	f.nRows = rows
-	f.nCols = columns
-	f.Rows = make([][]rune, rows, rows)
+	f.nCols = cols
+	f.Rows = make([][]Char, rows, rows)
 	for i := range f.Rows {
-		f.Rows[i] = make([]rune, columns, columns)
-		for k := 0; k < columns; k++ {
-			f.Rows[i][k] = ' '
+		f.Rows[i] = make([]Char, cols, cols)
+		for k := 0; k < cols; k++ {
+			f.Rows[i][k] = Char{Content:" ", Attr: Normal}
 		}
 	}
 }
@@ -30,39 +24,16 @@ func (f *frame) Size() (rows, cols int) {
 }
 
 // Set changes a character in the given position
-func (f *frame) Set(row, col int, ch rune) {
-	if row <= 0 || row > len(f.Rows) ||
-		col <= 0 || col > len(f.Rows[row-1]) {
+func (f *frame) Set(row, col int, ch rune, attrs ...interface{}) {
+	if row <= 0 || row > f.nRows ||
+		col <= 0 || col > f.nCols {
 		return
 	}
-	f.Rows[row-1][col-1] = ch
+	char := NewChar(ch, attrs...)
+	f.Rows[row-1][col-1] = char
 }
 
 const (
 	firstASCIIChar = '!' //041
 	lastASCIIChar  = '~' //026
 )
-
-// WriteTo implements the WriteTo interface and writes the sequences to render the full frame
-func (f *frame) WriteTo(w io.Writer) (n int64, err error) {
-	b := &bytes.Buffer{}
-
-	// Go to 1,1
-	b.Write(commands.Commands["GOTO"].Sequence(1, 1))
-	for i, row := range f.Rows {
-		for _, ch := range row {
-			if isPrintable(ch) {
-				b.Write([]byte(string(ch)))
-			} else {
-				b.Write([]byte(string(" ")))
-			}
-		}
-
-		if i+1 < len(f.Rows) {
-			b.Write([]byte("\n\r"))
-		}
-	}
-
-	nn, err := w.Write(b.Bytes())
-	return int64(nn), err
-}
