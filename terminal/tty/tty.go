@@ -1,4 +1,5 @@
-package terminal
+// Package tty implements the os part of the terminal
+package tty
 
 import (
 	"os"
@@ -8,38 +9,45 @@ import (
 	"github.com/tredoe/term/sys"
 )
 
-
-type term struct {
+// TTY is a basic structure to control the terminal state
+type TTY struct {
 	Fd                  int
 	oldState, lastState sys.Termios
 }
 
-func (t *term) saveTerminalState() error {
+// SaveTTYState records the current low level terminal state
+func (t *TTY) SaveTTYState() error {
 	if err := sys.Getattr(t.Fd, &t.lastState); err != nil {
 		return os.NewSyscallError("sys.Getattr", err)
 	}
 	t.oldState = t.lastState
 	return nil
 }
-func (t *term) restore() error {
+
+// Restore returns the tty to the state save with SaveTTYState
+func (t *TTY) Restore() error {
 	if err := sys.Setattr(t.Fd, sys.TCSANOW, &t.oldState); err != nil {
 		return os.NewSyscallError("sys.Setattr", err)
 	}
 	t.lastState = t.oldState
 	return nil
 }
-func (t *term) winSize() (rows, cols int, err error) {
+
+// TermSize  returns the terminal size
+func (t *TTY) TermSize() (rows, cols int, err error) {
 	ws := sys.Winsize{}
 	if err := sys.GetWinsize(t.Fd, &ws); err != nil {
-		return 0,0,err
+		return 0, 0, err
 	}
 
 	return int(ws.Row), int(ws.Col), nil
 }
 
-func (t *term) onResize(cbk func(rows, cols int)) error {
+// OnResize listen of the SIGWINCH event (trigger by terminal apps after the terminal changes its sizes).
+// The callback cbk is also called the first time this function is called even if not SIGWINCH is called.
+func (t *TTY) OnResize(cbk func(rows, cols int)) error {
 	sync := func() error {
-		rows, cols, err := t.winSize()
+		rows, cols, err := t.TermSize()
 		if err != nil {
 			return err
 		}
@@ -55,10 +63,10 @@ func (t *term) onResize(cbk func(rows, cols int)) error {
 		}
 	}()
 	return sync()
-
 }
 
-func (t *term) rawMode() error {
+// RawMode sets the terminal into RawMode
+func (t *TTY) RawMode() error {
 	// Input modes - no break, no CR to NL, no NL to CR, no carriage return,
 	// no strip char, no start/stop output control, no parity check.
 	t.lastState.Iflag &^= (sys.BRKINT | sys.IGNBRK | sys.ICRNL | sys.INLCR |

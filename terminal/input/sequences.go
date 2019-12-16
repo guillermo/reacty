@@ -4,7 +4,7 @@ package input
 
 
 import (
-    "github.com/guillermo/reacty/events"
+    "github.com/guillermo/reacty/terminal/events"
 )
 type seq struct{
     seq   string

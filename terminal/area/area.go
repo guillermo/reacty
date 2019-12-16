@@ -20,6 +20,13 @@ func (a *Area) Size() (rows, cols int) {
 	return a.Rows, a.Cols
 }
 
+// SetSize changes the current area size an sets the area to Fixed.
+func (a *Area) SetSize(rows, cols int) {
+	a.Rows = rows
+	a.Cols = cols
+	a.Fixed = true
+}
+
 // Each iterates over each column and row. The rows and the columns starts with 1
 func (a *Area) Each(fn func(Row, Col int, char Char)) {
 	for r := 0; r < a.Rows; r++ {

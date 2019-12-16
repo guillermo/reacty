@@ -122,7 +122,8 @@ func (buf FakeIO) Read(d []byte) (int, error) {
 
 func TestUnknown(t *testing.T) {
 	buf := make(chan ([]byte))
-	input := Open(FakeIO(buf))
+	input := &Input{Input: FakeIO(buf)}
+	input.Open()
 
 	buf <- []byte("\033[❓")
 	close(buf)
@@ -154,7 +155,8 @@ func TestUnknown(t *testing.T) {
 
 func TestReiszeEvent(t *testing.T) {
 	buf := make(chan ([]byte))
-	input := Open(FakeIO(buf))
+	input := &Input{Input: FakeIO(buf)}
+	input.Open()
 
 	s := "\x1b[8;24;80t"
 	buf <- []byte(s)
@@ -179,7 +181,8 @@ func TestReiszeEvent(t *testing.T) {
 
 func TestSingle(t *testing.T) {
 	buf := make(chan ([]byte))
-	input := Open(FakeIO(buf))
+	input := &Input{Input: FakeIO(buf)}
+	input.Open()
 
 	buf <- []byte{'a'}
 
@@ -221,7 +224,8 @@ func TestIndividualInput(t *testing.T) {
 		t.Run(fmt.Sprintf("%X - (%s)", test.in, string(test.in)), func(t *testing.T) {
 
 			buf := make(chan ([]byte))
-			input := Open(FakeIO(buf))
+			input := &Input{Input: FakeIO(buf)}
+			input.Open()
 
 			buf <- test.in
 
@@ -247,7 +251,8 @@ const kbEventString = "KeyboardEvent: "
 func TestStreamInput(t *testing.T) {
 
 	buf := make(chan ([]byte))
-	input := Open(FakeIO(buf))
+	input := &Input{Input: FakeIO(buf)}
+	input.Open()
 	for _, test := range inputTests {
 		t.Run(fmt.Sprintf("%X - (%s)", test.in, string(test.in)), func(t *testing.T) {
 			buf <- test.in

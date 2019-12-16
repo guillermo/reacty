@@ -1,7 +1,7 @@
 package input
 
 import (
-	"github.com/guillermo/reacty/events"
+	"github.com/guillermo/reacty/terminal/events"
 	"strings"
 )
 

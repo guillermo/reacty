@@ -8,7 +8,7 @@ package input
 import (
 	"bytes"
 	"fmt"
-	"github.com/guillermo/reacty/events"
+	"github.com/guillermo/reacty/terminal/events"
 	"io"
 	"time"
 )
@@ -25,7 +25,7 @@ const inputWait = time.Millisecond * 2
 
 // Input represent an input device. It converts a stream of bytes into a collection of events.
 type Input struct {
-	source io.Reader
+	Input  io.Reader
 	runes  <-chan (rune)
 	Events <-chan (events.Event)
 	data   []rune
@@ -37,25 +37,21 @@ type Input struct {
 
 // Open starts reading bytes from the reader and publishing events in Events.
 // Once io.EOF is found, the channel will be closed.
-func Open(source io.Reader) *Input {
+func (i *Input) Open() {
 	runesChan := make(chan (rune), 1024)
 	eventsChan := make(chan (events.Event), 1024)
 
-	input := &Input{
-		source: source,
-		runes:  runesChan,
-		Events: eventsChan,
-	}
+	i.runes = runesChan
+	i.Events = eventsChan
 
-	go input.runeLoop(runesChan)
-	go input.eventLoop(eventsChan)
-	return input
+	go i.runeLoop(runesChan)
+	go i.eventLoop(eventsChan)
 }
 
 func (i *Input) runeLoop(c chan (rune)) {
 	buf := make([]byte, 4096)
 	for {
-		n, err := i.source.Read(buf)
+		n, err := i.Input.Read(buf)
 		for _, ch := range bytes.Runes(buf[:n]) {
 			c <- ch
 		}
